@@ -1,0 +1,121 @@
+﻿@page "/login"
+@using ASNLawClient.Client.Services
+@using Microsoft.AspNetCore.Components.Web
+@inject NavigationManager NavigationManager
+@inject IPreferenceService PreferenceService
+@inject AuthenticationService AuthService
+
+<div class="login-container">
+    <div class="login-card">
+        <div class="login-header">
+            <h2>ASN Law Reference</h2>
+            <p>Please sign in to access administrative features</p>
+        </div>
+
+        <div class="login-body">
+            <div class="form-group">
+                <label for="email">Email</label>
+                <input id="email" type="email" class="form-control" @bind="_email" @onkeypress="HandleKeyPress" />
+            </div>
+
+            <div class="form-group">
+                <label for="password">Password</label>
+                <input id="password" type="password" class="form-control" @bind="_password" @onkeypress="HandleKeyPress" />
+            </div>
+
+            <div class="form-group">
+                <label for="api-url">API URL</label>
+                <input id="api-url" type="text" class="form-control" @bind="_apiUrl" />
+                <small class="text-muted">Example: https://example.com/api/</small>
+            </div>
+
+            <div class="form-actions">
+                <button @onclick="LoginUser" disabled="@_isLoggingIn" class="btn btn-primary btn-block">
+                    @if (_isLoggingIn)
+                    {
+                        <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+                        <span>Signing in...</span>
+                    }
+                    else
+                    {
+                        <span>Sign In</span>
+                    }
+                </button>
+            </div>
+
+            @if (!string.IsNullOrEmpty(_errorMessage))
+            {
+                <div class="alert alert-danger mt-3">
+                    @_errorMessage
+                </div>
+            }
+        </div>
+    </div>
+</div>
+
+@code {
+    private string _email = "";
+    private string _password = "";
+    private string _apiUrl = "https://localhost:5001/api/";
+    private bool _isLoggingIn = false;
+    private string _errorMessage = "";
+
+    protected override void OnInitialized()
+    {
+        // Load saved API URL if available
+        var savedApiUrl = PreferenceService.Get("ApiBaseUrl", "");
+        if (!string.IsNullOrEmpty(savedApiUrl))
+        {
+            _apiUrl = savedApiUrl;
+        }
+    }
+
+    private void HandleKeyPress(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter")
+        {
+            LoginUser();
+        }
+    }
+
+    private async Task LoginUser()
+    {
+        if (string.IsNullOrWhiteSpace(_email) || string.IsNullOrWhiteSpace(_password))
+        {
+            _errorMessage = "Email and password are required.";
+            return;
+        }
+
+        _isLoggingIn = true;
+        _errorMessage = "";
+        StateHasChanged();
+
+        try
+        {
+            // Save API URL
+            PreferenceService.Set("ApiBaseUrl", _apiUrl);
+
+            // Attempt to login with AuthenticationService
+            var loginResult = await AuthService.LoginAsync(_email, _password);
+
+            if (loginResult)
+            {
+                // Navigate to admin page
+                NavigationManager.NavigateTo("/admin");
+            }
+            else
+            {
+                _errorMessage = "Invalid email or password.";
+            }
+        }
+        catch (Exception ex)
+        {
+            _errorMessage = $"Error: {ex.Message}";
+        }
+        finally
+        {
+            _isLoggingIn = false;
+            StateHasChanged();
+        }
+    }
+}

@@ -1,0 +1,71 @@
+﻿@using Microsoft.AspNetCore.Components.Web
+@namespace ASNLawClient.Pages
+@addTagHelper *, Microsoft.AspNetCore.Mvc.TagHelpers
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <base href="/" />
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+    <!-- Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/open-iconic/1.1.1/font/css/open-iconic-bootstrap.min.css">
+
+    <!-- Force cache refresh by adding version parameter -->
+    <link rel="stylesheet" href="css/app.css?v=@DateTime.Now.Ticks" />
+    <link rel="stylesheet" href="css/components.css?v=@DateTime.Now.Ticks" />
+
+
+    <link rel="stylesheet" href="ASNLawClient.styles.css?v=@DateTime.Now.Ticks" />
+    <link rel="icon" href="data:,">  <!-- Add this before your actual favicon -->
+    <link rel="icon" type="image/png" href="favicon.png" />
+    <component type="typeof(HeadOutlet)" render-mode="ServerPrerendered" />
+    @RenderSection("head", required: false)
+</head>
+<body>
+    <!-- Inline styled element for testing CSS issues -->
+    <div class="inline-test">
+        This text has inline styles. If you're seeing this but not other styles, your CSS files aren't loading.
+        <button onclick="document.querySelector('.inline-test').style.display = 'none';">Hide</button>
+    </div>
+
+    @RenderBody()
+
+    <div id="blazor-error-ui">
+        <environment include="Staging,Production">
+            An error has occurred. This application may no longer respond until reloaded.
+        </environment>
+        <environment include="Development">
+            An unhandled exception has occurred. See browser dev tools for details.
+        </environment>
+        <a href="" class="reload">Reload</a>
+        <a class="dismiss">🗙</a>
+    </div>
+
+    <script>
+        // Inline script to test if JavaScript is working
+        console.log("Inline JavaScript in _Layout.cshtml is working");
+
+        // Show the inline test element after 2 seconds if CSS files aren't loading
+        setTimeout(function() {
+            // Check if any styles are applied to body
+            const bodyBg = window.getComputedStyle(document.body).backgroundColor;
+            if (bodyBg === "rgba(0, 0, 0, 0)" || bodyBg === "transparent") {
+                document.querySelector('.inline-test').style.display = 'block';
+            }
+        }, 2000);
+    </script>
+
+    <script src="_framework/blazor.server.js"></script>
+
+    <!-- Add site.js after Blazor framework script -->
+    <script src="js/pdf-viewer.js"></script>
+    <script src="js/site.js"></script>
+
+    @RenderSection("Scripts", required: false)
+</body>
+</html>

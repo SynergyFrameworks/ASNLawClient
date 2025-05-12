@@ -1,0 +1,435 @@
+﻿/* Component Styles */
+
+/* Document Viewer */
+.document-viewer {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    min-height: 600px;
+}
+
+.document-header {
+    padding: 0.5rem 1rem;
+    background-color: #f5f5f5;
+    border-bottom: 1px solid #ddd;
+}
+
+.document-metadata {
+    display: flex;
+    gap: 1rem;
+    font-size: 0.9rem;
+    color: #666;
+}
+
+.viewer-container {
+    display: flex;
+    flex: 1;
+    position: relative;
+    min-height: 500px;
+}
+
+.pdf-container {
+    flex: 1;
+    overflow: auto;
+    border: 1px solid #ddd;
+    background-color: #f0f0f0;
+}
+
+#pdfViewer {
+    display: flex;
+    justify-content: center;
+    min-height: 500px;
+}
+
+.annotation-sidebar {
+    width: 0;
+    overflow: hidden;
+    transition: width 0.3s ease;
+    background-color: white;
+    border-left: none;
+}
+
+    .annotation-sidebar.visible {
+        width: 300px;
+        border-left: 1px solid #ddd;
+    }
+
+.document-toolbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.5rem 1rem;
+    background-color: #f5f5f5;
+    border-top: 1px solid #ddd;
+}
+
+.page-indicator {
+    font-size: 0.9rem;
+}
+
+.toggle-annotations {
+    position: absolute;
+    right: 300px;
+    top: 10px;
+    z-index: 5;
+    padding: 0.25rem 0.5rem;
+    background-color: #007bff;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+/* Annotation Panel */
+.annotation-panel {
+    padding: 1rem;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+}
+
+.annotation-list {
+    flex: 1;
+    overflow-y: auto;
+    margin-bottom: 1rem;
+}
+
+.annotation-item {
+    margin-bottom: 1rem;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    padding: 0.75rem;
+}
+
+.annotation-header {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 0.5rem;
+    font-size: 0.8rem;
+    color: #666;
+}
+
+.annotation-content {
+    font-size: 0.9rem;
+}
+
+.annotation-form {
+    margin-top: auto;
+}
+
+    .annotation-form textarea {
+        width: 100%;
+        min-height: 100px;
+        padding: 0.5rem;
+        margin-bottom: 0.5rem;
+        border: 1px solid #ccc;
+        border-radius: 4px;
+    }
+
+.annotation-form-options {
+    margin-bottom: 0.5rem;
+}
+
+/* Document List */
+.document-list-container {
+    padding: 1rem;
+}
+
+.filters {
+    margin-bottom: 1rem;
+}
+
+.documents-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+}
+
+.document-card {
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    padding: 1rem;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+    .document-card:hover {
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        transform: translateY(-2px);
+    }
+
+.document-card-header {
+    margin-bottom: 0.5rem;
+}
+
+    .document-card-header h3 {
+        margin: 0 0 0.25rem 0;
+        font-size: 1.1rem;
+    }
+
+.jurisdiction {
+    display: inline-block;
+    font-size: 0.8rem;
+    background-color: #f0f0f0;
+    padding: 0.1rem 0.5rem;
+    border-radius: 4px;
+}
+
+.metadata {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.8rem;
+    color: #666;
+}
+
+.pagination {
+    display: flex;
+    justify-content: center;
+    gap: 0.5rem;
+}
+
+.page-button {
+    padding: 0.25rem 0.5rem;
+    border: 1px solid #ddd;
+    background-color: #f5f5f5;
+    cursor: pointer;
+}
+
+    .page-button.active {
+        background-color: #007bff;
+        color: white;
+        border-color: #007bff;
+    }
+
+/* Search components */
+.search-container {
+    margin-bottom: 1rem;
+    width: 100%;
+}
+
+.search-input-container {
+    display: flex;
+    align-items: center;
+    max-width: 600px;
+    margin: 0 auto;
+    border: 1px solid var(--ui-border);
+    border-radius: 0.5rem;
+    overflow: hidden;
+    background-color: white;
+    transition: box-shadow 0.2s;
+}
+
+    .search-input-container:focus-within {
+        box-shadow: 0 0 0 2px rgba(242, 76, 61, 0.2);
+        border-color: var(--secondary-color);
+    }
+
+    .search-input-container input {
+        flex: 1; /* Ensures the input takes up the remaining space */
+        padding: 0.75rem 1rem;
+        border: none;
+        outline: none;
+        font-size: 1rem;
+    }
+
+.search-button {
+    padding: 0.75rem 1rem;
+    background-color: var(--secondary-color);
+    color: white;
+    border: none;
+    border-radius: 0 0.5rem 0.5rem 0;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+}
+
+    .search-button:hover,
+    .search-button:focus {
+        background-color: var(--secondary-dark);
+    }
+
+.btn-primary:hover {
+    background-color: var(--secondary-dark) !important;
+}
+
+.btn-secondary:hover {
+    background-color: var(--primary-dark) !important;
+}
+
+/* Additional button style overrides */
+button {
+    transition: all 0.3s ease;
+}
+
+    .search-button .oi {
+        color: white; /* Ensures the icon is white on top of the blue background */
+    }
+
+
+
+/* Search Results */
+.search-results-container {
+    padding: 1rem 0;
+}
+
+.results-count {
+    margin-bottom: 1rem;
+    font-size: 0.9rem;
+    color: #666;
+}
+
+.results-list {
+    margin-bottom: 1.5rem;
+}
+
+.result-item {
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    padding: 1rem;
+    margin-bottom: 1rem;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+    .result-item:hover {
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    }
+
+.result-title {
+    margin: 0 0 0.5rem 0;
+    color: #007bff;
+}
+
+.result-metadata {
+    display: flex;
+    gap: 1rem;
+    margin-bottom: 0.5rem;
+    font-size: 0.8rem;
+    color: #666;
+}
+
+.result-text {
+    font-size: 0.9rem;
+}
+
+/* Filter Panel */
+.filter-panel {
+    background-color: #f5f5f5;
+    border-radius: 4px;
+    padding: 1rem;
+    margin-bottom: 1rem;
+}
+
+.filter-section {
+    margin-bottom: 1rem;
+}
+
+    .filter-section h4 {
+        margin-top: 0;
+        margin-bottom: 0.5rem;
+    }
+
+.jurisdiction-list, .date-filters {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+}
+
+.checkbox-item {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+}
+
+.date-field {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+}
+
+.reset-button {
+    padding: 0.25rem 0.5rem;
+    background-color: #6c757d;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+/* Settings Page */
+.settings-page {
+    max-width: 800px;
+    margin: 0 auto;
+    padding: 1rem;
+}
+
+.settings-section {
+    margin-bottom: 2rem;
+}
+
+.setting-row {
+    margin-bottom: 1rem;
+}
+
+    .setting-row label {
+        display: block;
+        margin-bottom: 0.25rem;
+        font-weight: 500;
+    }
+
+    .setting-row input, .setting-row select {
+        width: 100%;
+        padding: 0.5rem;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+    }
+
+.settings-actions {
+    display: flex;
+    gap: 1rem;
+    justify-content: flex-end;
+}
+
+.save-button {
+    padding: 0.5rem 1rem;
+    background-color: #28a745;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+.cancel-button {
+    padding: 0.5rem 1rem;
+    background-color: #6c757d;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+/* Home Page */
+.home-page {
+    padding: 1rem;
+}
+
+.recent-documents {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 1rem;
+}
+
+/* Loading and Error States */
+.loading, .no-documents, .no-annotations, .no-results {
+    padding: 2rem;
+    text-align: center;
+    color: #666;
+}
+
+.loading-indicator {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1rem;
+    padding: 2rem;
+}

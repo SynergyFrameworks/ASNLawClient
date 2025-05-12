@@ -1,0 +1,150 @@
+﻿@using ASNLawClient.Client.Models
+@using System.Linq
+@inject NavigationManager Navigation
+
+<div class="search-results">
+    @if (!Results.Any())
+    {
+        <div class="no-results">
+            <p>No results found. Try adjusting your search terms or filters.</p>
+        </div>
+    }
+    else
+    {
+        <div class="result-count">
+            Found @Results.Count results
+        </div>
+
+        <div class="results-list">
+            @foreach (var result in GetPagedResults())
+            {
+                <div class="search-result-item" @onclick="() => NavigateToDocument(result.Id)">
+                    <h3 class="result-title">@result.Title</h3>
+
+                    <div class="result-metadata">
+                        <span class="result-jurisdiction">@result.Jurisdiction</span>
+                        <span class="result-type">@result.DocumentType</span>
+                        <span class="result-date">@result.PublishedDate.ToString("MMM d, yyyy")</span>
+                    </div>
+
+                    <div class="result-snippet">
+                        @((MarkupString)result.Snippet)
+                    </div>
+
+                    @if (result.MatchedPages.Any())
+                    {
+                        <div class="matched-pages">
+                            <span>Matches on pages: </span>
+                            @foreach (var pageNumber in result.MatchedPages.Take(5))
+                            {
+                                <span class="page-badge" @onclick="() => NavigateToDocumentPage(result.Id, pageNumber)">@pageNumber</span>
+                            }
+                            @if (result.MatchedPages.Count > 5)
+                            {
+                                <span>and @(result.MatchedPages.Count - 5) more</span>
+                            }
+                        </div>
+                    }
+
+                    @if (result.Tags.Any())
+                    {
+                        <div class="result-tags">
+                            @foreach (var tag in result.Tags)
+                            {
+                                <span class="tag">@tag</span>
+                            }
+                        </div>
+                    }
+                </div>
+            }
+        </div>
+
+        <div class="pagination">
+            @if (TotalPages > 1)
+            {
+                <div class="pagination-controls">
+                    <button @onclick="() => ChangePage(CurrentPage - 1)"
+                            disabled="@(CurrentPage <= 1)"
+                            class="page-nav prev">
+                        Previous
+                    </button>
+
+                    @for (int i = GetPaginationStart(); i <= GetPaginationEnd(); i++)
+                    {
+                        var pageNumber = i;
+                        <button @onclick="() => ChangePage(pageNumber)"
+                                class="page-number @(pageNumber == CurrentPage ? "active" : "")">
+                            @pageNumber
+                        </button>
+                    }
+
+                    <button @onclick="() => ChangePage(CurrentPage + 1)"
+                            disabled="@(CurrentPage >= TotalPages)"
+                            class="page-nav next">
+                        Next
+                    </button>
+                </div>
+            }
+        </div>
+    }
+</div>
+
+@code {
+    [Parameter]
+    public List<SearchResult> Results { get; set; } = new();
+
+    [Parameter]
+    public int CurrentPage { get; set; } = 1;
+
+    [Parameter]
+    public int PageSize { get; set; } = 10;
+
+    [Parameter]
+    public EventCallback<int> OnPageChange { get; set; }
+
+    private int TotalPages => (int)Math.Ceiling(Results.Count / (double)PageSize);
+
+    private List<SearchResult> GetPagedResults()
+    {
+        return Results
+            .Skip((CurrentPage - 1) * PageSize)
+            .Take(PageSize)
+            .ToList();
+    }
+
+    private int GetPaginationStart()
+    {
+        // Show at most 5 page numbers, centered on the current page if possible
+        var start = Math.Max(1, CurrentPage - 2);
+        var end = Math.Min(start + 4, TotalPages);
+
+        // Adjust start if we're near the end to ensure we show 5 pages when possible
+        start = Math.Max(1, end - 4);
+
+        return start;
+    }
+
+    private int GetPaginationEnd()
+    {
+        var start = GetPaginationStart();
+        return Math.Min(start + 4, TotalPages);
+    }
+
+    private async Task ChangePage(int page)
+    {
+        if (page < 1 || page > TotalPages || page == CurrentPage)
+            return;
+
+        await OnPageChange.InvokeAsync(page);
+    }
+
+    private void NavigateToDocument(string documentId)
+    {
+        Navigation.NavigateTo($"/document/{documentId}");
+    }
+
+    private void NavigateToDocumentPage(string documentId, int page)
+    {
+        Navigation.NavigateTo($"/document/{documentId}?page={page}");
+    }
+}

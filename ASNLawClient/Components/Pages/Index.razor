@@ -1,0 +1,166 @@
+﻿@page "/"
+@namespace ASNLawClient.Components.Pages
+@using ASNLawClient.Client.Models
+@using ASNLawClient.Client.Services
+@inject ApiClient ApiClient
+@inject NavigationManager NavManager
+@inject ToastService ToastService
+
+<PageTitle>ASN Law Reference</PageTitle>
+
+<div class="home-page">
+    <div class="hero-section">
+        <h1>Welcome to ASN Law Reference</h1>
+        <p>
+            Your comprehensive resource for legal documents, regulations, and statutes.
+            Browse our collection of legal references or search for specific information.
+        </p>
+
+        <p>
+            ASN Law Reference is a powerful tool for legal professionals, students, and anyone
+            seeking to understand the law. Our platform provides easy access to a wide range of
+            legal documents, including statutes, regulations, and case law.</p>
+@* 
+        <button @onclick="TestToast" class="btn btn-primary">Test Toast</button>
+ *@
+        <div class="actions">
+            <a href="documents" class="btn btn-primary">Browse Documents</a>
+            <a href="search" class="btn btn-secondary">Search</a>
+        </div>
+    </div>
+
+    <div class="card-grid">
+        <div class="card">
+            <h3>Recent Documents</h3>
+            <p>Access the most recently added legal documents in our database.</p>
+            <a href="documents" class="btn btn-primary">View Documents</a>
+        </div>
+
+        <div class="card">
+            <h3>Search</h3>
+            <p>Search for specific legal terms, statutes, or regulations across all documents.</p>
+            <a href="search" class="btn btn-primary">Search Documents</a>
+        </div>
+
+        <div class="card">
+            <h3>Manage</h3>
+            <p>Administrators can manage, add, and update legal documents in the system.</p>
+            <a href="login" class="btn btn-primary">Admin Login</a>
+        </div>
+    </div>
+
+    <div class="search-container">
+        <div class="search-input-container">
+            <input type="text" @bind="SearchQuery" @bind:event="oninput"
+                   @onkeydown="HandleKeyDown" placeholder="Search Law documents..." />
+            <button class="search-button" @onclick="PerformSearch">
+                <span class="oi oi-magnifying-glass"></span>
+            </button>
+        </div>
+    </div>
+
+    <div class="recent-documents-section">
+        <h2>Recent Documents</h2>
+        @if (_recentDocuments == null)
+        {
+            <div class="loading">Loading recent documents...</div>
+        }
+        else if (!_recentDocuments.Any())
+        {
+            <div class="no-documents">No recent documents found.</div>
+        }
+        else
+        {
+            <div class="documents-grid">
+                @foreach (var document in _recentDocuments)
+                {
+                    <div class="document-card" @onclick="() => ViewDocument(document.Id)">
+                        <div class="document-card-header">
+                            <h3>@document.Title</h3>
+                            <span class="jurisdiction">@document.Jurisdiction</span>
+                        </div>
+                        <div class="document-card-content">
+                            <div class="metadata">
+                                <div class="version">Version @document.Version</div>
+                                <div class="date">@document.CreatedAt.ToString("MMM d, yyyy")</div>
+                            </div>
+                        </div>
+                    </div>
+                }
+            </div>
+        }
+    </div>
+</div>
+
+@code {
+    private List<Document>? _recentDocuments;
+    private string SearchQuery { get; set; } = "";
+
+    protected override async Task OnInitializedAsync()
+    {
+        await CheckApiConnectionAsync();
+        await LoadRecentDocumentsAsync();
+    }
+
+    private async Task CheckApiConnectionAsync()
+    {
+        try
+        {
+            // Try to get filter options as a simple API call to test connection
+            await ApiClient.GetFilterOptionsAsync();
+
+            // If successful, show a brief toast
+            ToastService.ShowSuccess("Connected to API successfully", "Connected", timeout: 3000);
+        }
+        catch (Exception ex)
+        {
+            // Explicitly create and display the error toast for API connection failure
+            Console.WriteLine($"API connection failed: {ex.Message}");
+
+            // Use ShowError method without auto-close to ensure the user sees it
+            ToastService.ShowError("Cannot connect to the API. Please check your network connection or contact support.",
+                "Connection Error",
+                autoClose: false);
+        }
+    }
+
+    private async Task LoadRecentDocumentsAsync()
+    {
+        try
+        {
+            _recentDocuments = await ApiClient.GetRecentDocumentsAsync(6);
+            StateHasChanged();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error loading recent documents: {ex.Message}");
+            _recentDocuments = new List<Document>();
+        }
+    }
+
+    private void ViewDocument(string documentId)
+    {
+        NavManager.NavigateTo($"/document/{documentId}");
+    }
+
+    private void HandleKeyDown(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter")
+            PerformSearch();
+    }
+
+    private void PerformSearch()
+    {
+        if (!string.IsNullOrWhiteSpace(SearchQuery))
+        {
+            NavManager.NavigateTo($"/search?q={Uri.EscapeDataString(SearchQuery)}");
+        }
+    }
+
+    private void TestToast()
+    {
+        ToastService.ShowError("Test error message", "Test Error", autoClose: false);
+        // JSRuntime.InvokeVoidAsync("console.log", "Test toast triggered");
+    }
+
+}

@@ -1,0 +1,117 @@
+﻿@using ASNLawClient.Client.Models
+@using ASNLawClient.Client.Services
+@inject ApiClient ApiClient
+
+<div class="annotation-panel">
+    <h3>Annotations</h3>
+
+    @if (_annotations == null)
+    {
+        <div class="loading">Loading annotations...</div>
+    }
+    else if (!_annotations.Any())
+    {
+        <div class="no-annotations">No annotations for this page yet.</div>
+    }
+    else
+    {
+        <div class="annotation-list">
+            @foreach (var annotation in _pageAnnotations)
+            {
+                <div class="annotation-item">
+                    <div class="annotation-header">
+                        <span class="annotation-user">@annotation.UserName</span>
+                        <span class="annotation-date">@annotation.CreatedAt.ToString("MMM d, yyyy")</span>
+                    </div>
+                    <div class="annotation-content">@annotation.Text</div>
+                </div>
+            }
+        </div>
+    }
+
+    <div class="annotation-form">
+        <h4>Add Annotation</h4>
+        <textarea @bind="_newAnnotationText" placeholder="Add your note here..."></textarea>
+
+        <div class="annotation-form-options">
+            <label>
+                <input type="checkbox" @bind="_isShared" />
+                Share with others
+            </label>
+        </div>
+
+        <button @onclick="CreateAnnotation" disabled="@string.IsNullOrWhiteSpace(_newAnnotationText)">
+            Add Annotation
+        </button>
+    </div>
+</div>
+
+@code {
+    [Parameter]
+    public string DocumentId { get; set; } = string.Empty;
+
+    [Parameter]
+    public int CurrentPage { get; set; } = 1;
+
+    [Parameter]
+    public EventCallback<Annotation> OnAnnotationCreated { get; set; }
+
+    private List<Annotation>? _annotations;
+    private string _newAnnotationText = string.Empty;
+    private bool _isShared = true;
+
+    private IEnumerable<Annotation> _pageAnnotations =>
+        _annotations?.Where(a => a.Page == CurrentPage) ?? Array.Empty<Annotation>();
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadAnnotationsAsync();
+    }
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (_annotations == null || DocumentId != _currentDocumentId)
+        {
+            await LoadAnnotationsAsync();
+        }
+    }
+
+    private string _currentDocumentId = string.Empty;
+
+    private async Task LoadAnnotationsAsync()
+    {
+        if (string.IsNullOrEmpty(DocumentId))
+            return;
+
+        _currentDocumentId = DocumentId;
+        _annotations = await ApiClient.GetAnnotationsForDocumentAsync(DocumentId);
+        StateHasChanged();
+    }
+
+    private async Task CreateAnnotation()
+    {
+        if (string.IsNullOrWhiteSpace(_newAnnotationText))
+            return;
+
+        var newAnnotation = new Annotation
+            {
+                DocumentId = DocumentId,
+                Page = CurrentPage,
+                Type = "Note",
+                Text = _newAnnotationText,
+                IsShared = _isShared
+            };
+
+        var createdAnnotation = await ApiClient.CreateAnnotationAsync(newAnnotation);
+
+        // Add to local list
+        _annotations ??= new List<Annotation>();
+        _annotations.Add(createdAnnotation);
+
+        // Clear form
+        _newAnnotationText = string.Empty;
+
+        // Notify parent
+        await OnAnnotationCreated.InvokeAsync(createdAnnotation);
+    }
+}

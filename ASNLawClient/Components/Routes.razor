@@ -1,0 +1,20 @@
+﻿@namespace ASNLawClient.Components
+@using Microsoft.AspNetCore.Components.Web
+@using ASNLawClient.Components.Layout
+
+<Router AppAssembly="@typeof(App).Assembly" AdditionalAssemblies="@(new[] { typeof(ASNLawClient.Client._Imports).Assembly })">
+    <Found Context="routeData">
+        <RouteView RouteData="@routeData" DefaultLayout="@typeof(MainLayout)" />
+        <FocusOnNavigate RouteData="@routeData" Selector="h1" />
+    </Found>
+    <NotFound>
+        <PageTitle>Not found</PageTitle>
+        <LayoutView Layout="@typeof(MainLayout)">
+            <div class="not-found">
+                <h1 class="page-title">Page Not Found</h1>
+                <p>Sorry, there's nothing at this address.</p>
+                <a href="/" class="btn-primary">Return to Home</a>
+            </div>
+        </LayoutView>
+    </NotFound>
+</Router>

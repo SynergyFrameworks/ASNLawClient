@@ -1,0 +1,107 @@
+﻿@using ASNLawClient.Client.Services
+@inject NavigationManager Navigation
+
+<div class="landing-container">
+    <div class="hero-section">
+        <h1>Welcome to ASN Law Reference</h1>
+        <p class="subtitle">Your comprehensive Law document management and research solution</p>
+
+        <div class="info-card">
+            <div class="info-icon">
+                <span class="oi oi-info"></span>
+            </div>
+            <div class="info-content">
+                <h3>No Active Feeds</h3>
+                <p>There are currently no active document feeds configured for your account. Get started by setting up document sources or exploring our sample documents.</p>
+            </div>
+        </div>
+    </div>
+
+    <div class="features-section">
+        <h2>Key Features</h2>
+
+        <div class="features-grid">
+            <div class="feature-card">
+                <div class="feature-icon">
+                    <span class="oi oi-document"></span>
+                </div>
+                <h3>Document Management</h3>
+                <p>Securely store, organize, and access your Law documents from any device. Support for multiple jurisdictions and document types.</p>
+            </div>
+
+            <div class="feature-card">
+                <div class="feature-icon">
+                    <span class="oi oi-magnifying-glass"></span>
+                </div>
+                <h3>Advanced Search</h3>
+                <p>Quickly find relevant information with our powerful search capabilities. Filter by jurisdiction, date, document type, and more.</p>
+            </div>
+
+            <div class="feature-card">
+                <div class="feature-icon">
+                    <span class="oi oi-pencil"></span>
+                </div>
+                <h3>Annotations & Notes</h3>
+                <p>Add private or shared annotations to documents. Create, organize, and share notes with your team.</p>
+            </div>
+
+            <div class="feature-card">
+                <div class="feature-icon">
+                    <span class="oi oi-pulse"></span>
+                </div>
+                <h3>Real-time Updates</h3>
+                <p>Stay current with automatic notifications when documents are updated or new relevant materials are added.</p>
+            </div>
+        </div>
+    </div>
+
+    <div class="getting-started-section">
+        <h2>Getting Started</h2>
+
+        <div class="steps-container">
+            <div class="step-card">
+                <div class="step-number">1</div>
+                <h3>Configure Document Sources</h3>
+                <p>Set up connections to your document repositories or use our integration with popular Law research services.</p>
+                <button class="btn-primary" @onclick="NavigateToSettings">
+                    <span class="oi oi-cog"></span> Configure Sources
+                </button>
+            </div>
+
+            <div class="step-card">
+                <div class="step-number">2</div>
+                <h3>Explore Sample Documents</h3>
+                <p>Browse our collection of sample Law documents to get familiar with the platform's features.</p>
+                <button class="btn-secondary" @onclick="NavigateToSamples">
+                    <span class="oi oi-book"></span> View Samples
+                </button>
+            </div>
+
+            <div class="step-card">
+                <div class="step-number">3</div>
+                <h3>Import Your Documents</h3>
+                <p>Upload your own documents to begin building your Law reference library.</p>
+                <button class="btn-secondary" @onclick="NavigateToUpload">
+                    <span class="oi oi-cloud-upload"></span> Upload Documents
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    private void NavigateToSettings()
+    {
+        Navigation.NavigateTo("/settings");
+    }
+
+    private void NavigateToSamples()
+    {
+        Navigation.NavigateTo("/documents");
+    }
+
+    private void NavigateToUpload()
+    {
+        Navigation.NavigateTo("/admin");
+    }
+}

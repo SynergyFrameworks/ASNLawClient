@@ -1,0 +1,125 @@
+﻿@namespace ASNLawClient.Components.Shared
+@implements IDisposable
+@inject ToastService ToastService
+@inject IJSRuntime JSRuntime
+
+<div class="toast-container">
+    @foreach (var toast in _toastMessages)
+    {
+        <div class="toast @GetToastClass(toast.Level) @(_expandedToasts.Contains(toast.Id) ? "expanded" : "")"
+             @onclick="() => ToggleExpand(toast.Id)">
+            <div class="toast-header">
+                <span class="toast-icon">
+                    @GetToastIcon(toast.Level)
+                </span>
+                <span class="toast-title">@toast.Title</span>
+                <button type="button" class="toast-close" @onclick="() => Close(toast.Id)" @onclick:stopPropagation="true">
+                    &times;
+                </button>
+            </div>
+            <div class="toast-body">
+                @toast.Message
+            </div>
+        </div>
+    }
+</div>
+
+@code {
+    private List<ToastMessage> _toastMessages = new List<ToastMessage>();
+    private HashSet<Guid> _expandedToasts = new HashSet<Guid>();
+    private bool _isInitialized = false;
+
+    protected override void OnInitialized()
+    {
+        ToastService.OnShow += ShowToast;
+        ToastService.OnHide += HideToast;
+        _isInitialized = true;
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            // Log for debugging
+            await JSRuntime.InvokeVoidAsync("console.log", "ToastContainer initialized", _isInitialized);
+        }
+    }
+
+    private string GetToastClass(ToastLevel level)
+    {
+        return level switch
+        {
+            ToastLevel.Info => "toast-info",
+            ToastLevel.Success => "toast-success",
+            ToastLevel.Warning => "toast-warning",
+            ToastLevel.Error => "toast-error",
+            _ => "toast-info"
+        };
+    }
+
+    private string GetToastIcon(ToastLevel level)
+    {
+        return level switch
+        {
+            ToastLevel.Info => "ℹ️",
+            ToastLevel.Success => "✅",
+            ToastLevel.Warning => "⚠️",
+            ToastLevel.Error => "❌",
+            _ => "ℹ️"
+        };
+    }
+
+    private void ShowToast(ToastMessage toast)
+    {
+        // Debug logging
+        Console.WriteLine($"ToastContainer.ShowToast called: {toast.Title} - {toast.Message}");
+
+        // Add to our list
+        _toastMessages.Add(toast);
+
+        // Request UI update
+        InvokeAsync(StateHasChanged);
+
+        // Additional debug
+        Console.WriteLine($"Toast count after adding: {_toastMessages.Count}");
+    }
+
+    private void HideToast(Guid toastId)
+    {
+        var toast = _toastMessages.Find(t => t.Id == toastId);
+        if (toast != null)
+        {
+            _toastMessages.Remove(toast);
+            _expandedToasts.Remove(toastId);
+            InvokeAsync(StateHasChanged);
+        }
+    }
+
+    private void Close(Guid toastId)
+    {
+        ToastService.HideToast(toastId);
+    }
+
+    private void ToggleExpand(Guid toastId)
+    {
+        if (_expandedToasts.Contains(toastId))
+        {
+            _expandedToasts.Remove(toastId);
+        }
+        else
+        {
+            _expandedToasts.Add(toastId);
+        }
+        InvokeAsync(StateHasChanged);
+    }
+
+    public void Dispose()
+    {
+        if (_isInitialized && ToastService != null)
+        {
+            ToastService.OnShow -= ShowToast;
+            ToastService.OnHide -= HideToast;
+            _isInitialized = false;
+        }
+    }
+}

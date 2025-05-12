@@ -1,0 +1,31 @@
+﻿@namespace ASNLawClient.Components.Shared
+@inject NavigationManager Navigation
+@inject ApiClient ApiClient
+
+<div class="search-container">
+    <div class="search-input-container">
+        <input type="text" @bind="searchQuery" placeholder="Search legal documents..." />
+        <button class="search-button" @onclick="OnSearch">
+            <span class="oi oi-magnifying-glass" aria-hidden="true"></span>
+        </button>
+    </div>
+</div>
+
+@code {
+    private string searchQuery = string.Empty;
+
+    private async Task OnSearch()
+    {
+        if (!string.IsNullOrWhiteSpace(searchQuery))
+        {
+            // Navigate to the search results page with query parameter
+            Navigation.NavigateTo($"/search?q={Uri.EscapeDataString(searchQuery)}");
+
+            // Optionally, you can also fetch the search results here:
+            var filters = new FilterOptions(); // Apply filters as needed
+            var searchResults = await ApiClient.SearchAsync(searchQuery, filters);
+
+            // Handle search results (e.g., display them in the UI or store them)
+        }
+    }
+}

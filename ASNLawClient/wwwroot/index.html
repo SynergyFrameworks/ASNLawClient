@@ -1,0 +1,74 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <title>ASN Law Reference</title>
+    <base href="/" />
+
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+    <!-- CSS Libraries -->
+    <link rel="stylesheet" href="css/bootstrap/bootstrap.min.css" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/open-iconic/1.1.1/font/css/open-iconic-bootstrap.min.css">
+
+
+    <!-- Application CSS -->
+    <link href="css/app.css" rel="stylesheet" />
+    <link href="css/components.css" rel="stylesheet" />
+
+    <!-- Inline test styles -->
+    <style>
+        .inline-test {
+            background-color: purple;
+            color: white;
+            padding: 10px;
+            margin: 10px;
+            border-radius: 4px;
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <!-- Inline styled element for testing CSS issues -->
+    <div class="inline-test">
+        This text has inline styles. If you're seeing this but not other styles, your CSS files aren't loading.
+        <button onclick="this.parentElement.style.display = 'none';">Hide</button>
+    </div>
+
+    <div id="app">
+        <div class="loading-app">
+            <div class="spinner"></div>
+            <div>Loading...</div>
+        </div>
+    </div>
+
+    <div id="blazor-error-ui">
+        An unhandled error has occurred.
+        <a href="" class="reload">Reload</a>
+        <a class="dismiss">🗙</a>
+    </div>
+
+    <script>
+        // Inline script to test if JavaScript is working
+        console.log("Inline JavaScript in index.html is working");
+
+        // Show the inline test element after 2 seconds if CSS files aren't loading
+        setTimeout(function () {
+            // Check if any styles are applied to body
+            const bodyBg = window.getComputedStyle(document.body).backgroundColor;
+            if (bodyBg === "rgba(0, 0, 0, 0)" || bodyBg === "transparent") {
+                document.querySelector('.inline-test').style.display = 'block';
+            }
+        }, 2000);
+    </script>
+
+    <script src="_framework/blazor.webassembly.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
+    <script src="js/pdf-viewer.js"></script>
+    <script src="js/site.js"></script>
+</body>
+</html>

@@ -1,0 +1,212 @@
+﻿@using ASNLawClient.Client.Models
+@using ASNLawClient.Client.Services
+@inject IJSRuntime JSRuntime
+@inject ApiClient ApiClient
+@implements IDisposable
+
+<div class="document-viewer">
+    <div class="document-header">
+        <h2>@(Document?.Title ?? "Loading document...")</h2>
+        <div class="document-metadata">
+            <span class="jurisdiction">@Document?.Jurisdiction</span>
+            <span class="version">Version @Document?.Version</span>
+            <span class="created-at">@(Document?.CreatedAt.ToString("MMMM d, yyyy"))</span>
+        </div>
+    </div>
+
+    <div class="viewer-container">
+        <div class="pdf-container" id="pdfContainer">
+            <div id="pdfViewer">
+                <div class="pdf-placeholder">Loading PDF viewer...</div>
+            </div>
+        </div>
+
+        <button class="toggle-annotations" @onclick="ToggleAnnotations">
+            @(ShowAnnotations ? "Hide" : "Show") Annotations
+        </button>
+
+        <div class="annotation-sidebar" style="@(ShowAnnotations ? "display: block;" : "display: none;")">
+            <div class="annotation-panel">
+                <h3>Annotations</h3>
+
+                @if (_annotations == null)
+                {
+                    <div class="loading">Loading annotations...</div>
+                }
+                else if (!_pageAnnotations.Any())
+                {
+                    <div class="no-annotations">No annotations for this page yet.</div>
+                }
+                else
+                {
+                    <div class="annotation-list">
+                        @foreach (var annotation in _pageAnnotations)
+                        {
+                            <div class="annotation-item">
+                                <div class="annotation-header">
+                                    <span class="annotation-user">@annotation.UserName</span>
+                                    <span class="annotation-date">@annotation.CreatedAt.ToString("MMM d, yyyy")</span>
+                                </div>
+                                <div class="annotation-content">@annotation.Text</div>
+                            </div>
+                        }
+                    </div>
+                }
+
+                <div class="annotation-form">
+                    <h4>Add Annotation</h4>
+                    <textarea @bind="_newAnnotationText" placeholder="Add your note here..."></textarea>
+
+                    <div class="annotation-form-options">
+                        <label>
+                            <input type="checkbox" @bind="_isShared" />
+                            Share with others
+                        </label>
+                    </div>
+
+                    <button @onclick="CreateAnnotation" disabled="@string.IsNullOrWhiteSpace(_newAnnotationText)">
+                        Add Annotation
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="document-toolbar">
+        <button @onclick="PreviousPage" disabled="@(CurrentPage <= 1)">
+            <span class="oi oi-chevron-left"></span> Previous
+        </button>
+        <div class="page-indicator">
+            Page @CurrentPage of @TotalPages
+        </div>
+        <button @onclick="NextPage" disabled="@(CurrentPage >= TotalPages)">
+            Next <span class="oi oi-chevron-right"></span>
+        </button>
+    </div>
+</div>
+
+@code {
+    [Parameter]
+    public string DocumentId { get; set; } = string.Empty;
+
+    [Parameter]
+    public int InitialPage { get; set; } = 1;
+
+    private Document? Document { get; set; }
+    private int CurrentPage { get; set; }
+    private int TotalPages { get; set; } = 1;
+    private bool ShowAnnotations { get; set; } = false;
+    private DotNetObjectReference<DocumentViewer>? _objRef;
+    private bool _disposed = false;
+
+    private List<Annotation>? _annotations;
+    private string _newAnnotationText = string.Empty;
+    private bool _isShared = true;
+
+    private IEnumerable<Annotation> _pageAnnotations =>
+        _annotations?.Where(a => a.Page == CurrentPage) ?? Array.Empty<Annotation>();
+
+    protected override async Task OnInitializedAsync()
+    {
+        CurrentPage = InitialPage;
+        await LoadDocumentAsync();
+        await LoadAnnotationsAsync();
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            _objRef = DotNetObjectReference.Create(this);
+            await JSRuntime.InvokeVoidAsync("initPdfViewer", _objRef, Document?.PdfUrl, CurrentPage);
+
+            // Initialize annotation sidebar JS
+            await JSRuntime.InvokeVoidAsync("annotationSidebar.initialize");
+        }
+    }
+
+    private async Task LoadDocumentAsync()
+    {
+        if (!string.IsNullOrEmpty(DocumentId))
+        {
+            Document = await ApiClient.GetDocumentAsync(DocumentId);
+            StateHasChanged();
+        }
+    }
+
+    private async Task LoadAnnotationsAsync()
+    {
+        if (string.IsNullOrEmpty(DocumentId))
+            return;
+
+        _annotations = await ApiClient.GetAnnotationsForDocumentAsync(DocumentId);
+        StateHasChanged();
+    }
+
+    private async Task PreviousPage()
+    {
+        if (CurrentPage > 1)
+        {
+            CurrentPage--;
+            await JSRuntime.InvokeVoidAsync("goToPage", CurrentPage);
+        }
+    }
+
+    private async Task NextPage()
+    {
+        if (CurrentPage < TotalPages)
+        {
+            CurrentPage++;
+            await JSRuntime.InvokeVoidAsync("goToPage", CurrentPage);
+        }
+    }
+
+    private async Task ToggleAnnotations()
+    {
+        ShowAnnotations = !ShowAnnotations;
+        await JSRuntime.InvokeVoidAsync("annotationSidebar.toggle", ShowAnnotations);
+    }
+
+    private async Task CreateAnnotation()
+    {
+        if (string.IsNullOrWhiteSpace(_newAnnotationText))
+            return;
+
+        var newAnnotation = new Annotation
+            {
+                DocumentId = DocumentId,
+                Page = CurrentPage,
+                Type = "Note",
+                Text = _newAnnotationText,
+                IsShared = _isShared
+            };
+
+        var createdAnnotation = await ApiClient.CreateAnnotationAsync(newAnnotation);
+
+        // Add to local list
+        _annotations ??= new List<Annotation>();
+        _annotations.Add(createdAnnotation);
+
+        // Clear form
+        _newAnnotationText = string.Empty;
+
+        StateHasChanged();
+    }
+
+    [JSInvokable]
+    public void UpdatePageInfo(int currentPage, int totalPages)
+    {
+        CurrentPage = currentPage;
+        TotalPages = totalPages;
+        StateHasChanged();
+    }
+
+    public void Dispose()
+    {
+        if (!_disposed)
+        {
+            _objRef?.Dispose();
+            _disposed = true;
+        }
+    }
+}

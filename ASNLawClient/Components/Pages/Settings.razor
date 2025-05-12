@@ -1,0 +1,138 @@
+﻿@page "/settings"
+@using ASNLawClient.Client.Services
+@inject IPreferenceService PreferenceService
+@inject NavigationManager Navigation
+@inject AuthenticationService AuthService
+@inject IJSRuntime JSRuntime
+
+<div class="settings-page">
+    <h1>Settings</h1>
+
+    @if (!AuthService.IsAuthenticated())
+    {
+        <div class="alert alert-warning">
+            <p>You need to be logged in to access this page.</p>
+            <button class="btn btn-primary" @onclick="RedirectToLogin">Sign In</button>
+        </div>
+    }
+    else
+    {
+        <div class="success-message" id="successMessage" style="display: none;">
+            <strong>Success!</strong> Your settings have been saved.
+        </div>
+
+        <div class="settings-section">
+            <h2>API Connection</h2>
+
+            <div class="setting-row">
+                <label for="apiUrl">API URL</label>
+                <input id="apiUrl" type="text" @bind="_apiBaseUrl">
+                <div class="setting-help">The base URL for the API, including the trailing slash.</div>
+            </div>
+
+            <div class="setting-row">
+                <label for="authToken">Authentication Token</label>
+                <input id="authToken" type="password" @bind="_authToken">
+                <div class="setting-help">Your authentication token for the API. This is used for all API requests.</div>
+            </div>
+        </div>
+
+        <div class="settings-section">
+            <h2>Display Settings</h2>
+
+            <div class="setting-row">
+                <label for="pageSize">Results per page</label>
+                <select id="pageSize" @bind="_pageSize">
+                    <option value="5">5</option>
+                    <option value="10">10</option>
+                    <option value="20">20</option>
+                    <option value="50">50</option>
+                </select>
+                <div class="setting-help">The number of results to display per page in search results and document lists.</div>
+            </div>
+        </div>
+
+        <div class="settings-section">
+            <h2>Index Settings</h2>
+
+            <div class="setting-row">
+                <label for="embeddingModel">Embedding Model</label>
+                <select id="embeddingModel" @bind="_embeddingModel">
+                    <option value="text-embedding-3-small">OpenAI text-embedding-3-small</option>
+                    <option value="text-embedding-3-large">OpenAI text-embedding-3-large</option>
+                    <option value="sentence-transformers/all-mpnet-base-v2">Sentence Transformers (all-mpnet-base-v2)</option>
+                </select>
+                <div class="setting-help">The model used for creating document embeddings for semantic search.</div>
+            </div>
+
+            <div class="setting-row">
+                <label for="chunkSize">Chunk Size</label>
+                <input id="chunkSize" type="number" @bind="_chunkSize" min="128" max="2048">
+                <div class="setting-help">The size of text chunks for indexing. Smaller chunks provide more precise search results, but may result in context loss.</div>
+            </div>
+
+            <div class="setting-row">
+                <label for="chunkOverlap">Chunk Overlap</label>
+                <input id="chunkOverlap" type="number" @bind="_chunkOverlap" min="0" max="512">
+                <div class="setting-help">The number of tokens to overlap between adjacent chunks to maintain context continuity.</div>
+            </div>
+        </div>
+
+        <div class="settings-actions">
+            <button class="btn save-button" @onclick="SaveSettings">Save Settings</button>
+            <button class="btn cancel-button" @onclick="Cancel">Cancel</button>
+        </div>
+    }
+</div>
+
+@code {
+    private string _apiBaseUrl = string.Empty;
+    private string _authToken = string.Empty;
+    private string _pageSize = "10";
+    private string _embeddingModel = "text-embedding-3-large";
+    private int _chunkSize = 512;
+    private int _chunkOverlap = 128;
+
+    protected override void OnInitialized()
+    {
+        // Load current settings
+        _apiBaseUrl = PreferenceService.Get("ApiBaseUrl", "https://localhost:5001/api/");
+        _authToken = PreferenceService.Get("AuthToken", string.Empty);
+        _pageSize = PreferenceService.Get("PageSize", "10");
+        _embeddingModel = PreferenceService.Get("EmbeddingModel", "text-embedding-3-large");
+        _chunkSize = int.Parse(PreferenceService.Get("ChunkSize", "512"));
+        _chunkOverlap = int.Parse(PreferenceService.Get("ChunkOverlap", "128"));
+    }
+
+    private async Task SaveSettings()
+    {
+        try
+        {
+            // Save settings
+            PreferenceService.Set("ApiBaseUrl", _apiBaseUrl);
+            PreferenceService.Set("AuthToken", _authToken);
+            PreferenceService.Set("PageSize", _pageSize);
+            PreferenceService.Set("EmbeddingModel", _embeddingModel);
+            PreferenceService.Set("ChunkSize", _chunkSize.ToString());
+            PreferenceService.Set("ChunkOverlap", _chunkOverlap.ToString());
+
+            // Show success message using JS interop
+            await JSRuntime.InvokeVoidAsync("settingsMessages.showSuccess");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error saving settings: {ex.Message}");
+            await JSRuntime.InvokeVoidAsync("alert", $"Error saving settings: {ex.Message}");
+        }
+    }
+
+    private void Cancel()
+    {
+        Navigation.NavigateTo("/");
+    }
+
+    private void RedirectToLogin()
+    {
+        Navigation.NavigateTo("/login");
+    }
+}

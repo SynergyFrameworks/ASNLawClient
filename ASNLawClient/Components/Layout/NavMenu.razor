@@ -1,0 +1,83 @@
+﻿@namespace ASNLawClient.Components.Layout
+@using ASNLawClient.Client.Services
+@inject AuthenticationService AuthService
+
+<div class="sidebar">
+    <div class="brand">
+        <div class="brand-logo">ASN</div>
+        <div class="brand-name">Law Reference</div>
+    </div>
+
+    <div class="nav-menu">
+        <div class="nav-item">
+            <NavLink class="nav-link" href="/" Match="NavLinkMatch.Prefix">
+                <span class="nav-icon oi oi-home"></span> Home
+            </NavLink>
+
+        </div>
+
+        <div class="nav-item">
+            <NavLink class="nav-link" href="search">
+                <span class="nav-icon oi oi-magnifying-glass"></span> Search
+            </NavLink>
+        </div>
+
+        <div class="nav-item">
+            <NavLink class="nav-link" href="document">
+                <span class="nav-icon oi oi-document"></span> Documents
+            </NavLink>
+        </div>
+
+        @if (AuthService.IsAuthenticated())
+        {
+            <div class="nav-section">Administration</div>
+
+            <div class="nav-item">
+                <NavLink class="nav-link" href="admin">
+                    <span class="nav-icon oi oi-shield"></span> Admin Panel
+                </NavLink>
+            </div>
+
+            <div class="nav-item">
+                <NavLink class="nav-link" href="settings">
+                    <span class="nav-icon oi oi-cog"></span> Settings
+                </NavLink>
+            </div>
+
+            <div class="nav-item">
+                <button class="nav-link logout-btn" @onclick="Logout">
+                    <span class="nav-icon oi oi-account-logout"></span> Logout
+                </button>
+            </div>
+        }
+        else
+        {
+            <div class="nav-item">
+                <NavLink class="nav-link" href="login">
+                    <span class="nav-icon oi oi-account-login"></span> Login
+                </NavLink>
+            </div>
+        }
+    </div>
+
+    <div class="sidebar-footer">
+        <div class="user-info">
+            @if (AuthService.IsAuthenticated())
+            {
+                <div class="username">@AuthService.GetUserName()</div>
+                <div class="user-role">@AuthService.GetUserRole()</div>
+            }
+            else
+            {
+                <div class="guest-label">Guest User</div>
+            }
+        </div>
+    </div>
+</div>
+
+@code {
+    private void Logout()
+    {
+        AuthService.Logout();
+    }
+}

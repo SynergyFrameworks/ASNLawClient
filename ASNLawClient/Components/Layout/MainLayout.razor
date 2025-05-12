@@ -1,0 +1,37 @@
+﻿@namespace ASNLawClient.Components.Layout
+@inherits LayoutComponentBase
+@using ASNLawClient.Components.Shared
+@using ASNLawClient.Client.Services
+@inject IJSRuntime JSRuntime
+@inject ToastService ToastService
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/open-iconic/1.1.1/font/css/open-iconic-bootstrap.min.css">
+
+<link href="css/app.css" rel="stylesheet" />
+<link href="css/components.css" rel="stylesheet" />
+<script src="js/pdf-viewer.js"></script>
+<script src="js/site.js"></script>
+
+<div class="page">
+    <NavMenu />
+    <main class="main">
+        <div class="content">
+            @Body
+        </div>
+    </main>
+    <ToastContainer />
+</div>
+
+@code {
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            // Debug: Check if toast container exists
+            await JSRuntime.InvokeVoidAsync("eval", @"
+                console.log('MainLayout initialized');
+                console.log('Toast container exists:', !!document.querySelector('.toast-container'));
+            ");
+        }
+    }
+}

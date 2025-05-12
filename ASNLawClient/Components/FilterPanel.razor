@@ -1,0 +1,114 @@
+﻿@using ASNLawClient.Client.Models
+@using ASNLawClient.Client.Services
+@inject ApiClient ApiClient
+
+<div class="filter-panel">
+    <h3>Filter Results</h3>
+
+    <div class="filter-section">
+        <label for="jurisdiction">Jurisdiction</label>
+        <select id="jurisdiction" @bind="Filters.Jurisdiction" @bind:after="FiltersChanged">
+            <option value="">All Jurisdictions</option>
+            @foreach (var jurisdiction in _jurisdictions)
+            {
+                <option value="@jurisdiction">@jurisdiction</option>
+            }
+        </select>
+    </div>
+
+    <div class="filter-section">
+        <label for="documentType">Document Type</label>
+        <select id="documentType" @bind="Filters.DocumentType" @bind:after="FiltersChanged">
+            <option value="">All Types</option>
+            @foreach (var docType in _documentTypes)
+            {
+                <option value="@docType">@docType</option>
+            }
+        </select>
+    </div>
+
+    <div class="filter-section">
+        <label for="dateRange">Date Range</label>
+        <select id="dateRange" @bind="Filters.DateRange" @bind:after="FiltersChanged">
+            <option value="">Any Time</option>
+            <option value="past-week">Past Week</option>
+            <option value="past-month">Past Month</option>
+            <option value="past-year">Past Year</option>
+            <option value="custom">Custom Range</option>
+        </select>
+
+        @if (Filters.DateRange == "custom")
+        {
+            <div class="custom-date-range">
+                <!-- Custom date range picker can be added here -->
+            </div>
+        }
+    </div>
+
+    <div class="filter-section">
+        <label for="sortBy">Sort By</label>
+        <select id="sortBy" @bind="Filters.SortBy" @bind:after="FiltersChanged">
+            <option value="relevance">Relevance</option>
+            <option value="date-newest">Date (Newest First)</option>
+            <option value="date-oldest">Date (Oldest First)</option>
+            <option value="title-asc">Title (A-Z)</option>
+            <option value="title-desc">Title (Z-A)</option>
+        </select>
+    </div>
+
+    <div class="filter-section">
+        <label>
+            <input type="checkbox" @bind="Filters.IncludeArchived" @bind:after="FiltersChanged" />
+            Include Archived Documents
+        </label>
+    </div>
+
+    <div class="filter-actions">
+        <button @onclick="ResetFilters" class="btn-reset">Reset Filters</button>
+    </div>
+</div>
+
+@code {
+    [Parameter]
+    public FilterOptions Filters { get; set; } = new FilterOptions();
+
+    [Parameter]
+    public EventCallback<FilterOptions> OnFiltersChanged { get; set; }
+
+    private List<string> _jurisdictions = new List<string>();
+    private List<string> _documentTypes = new List<string>();
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadFilterOptionsAsync();
+    }
+
+    private async Task LoadFilterOptionsAsync()
+    {
+        try
+        {
+            // Assuming there's an API endpoint that provides available filter options
+            var filterOptions = await ApiClient.GetFilterOptionsAsync();
+            _jurisdictions = filterOptions.Jurisdictions ?? new List<string>();
+            _documentTypes = filterOptions.DocumentTypes ?? new List<string>();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error loading filter options: {ex.Message}");
+            // Fallback to hard-coded values if needed
+            _jurisdictions = new List<string> { "Federal", "State", "International" };
+            _documentTypes = new List<string> { "Case Law", "Statute", "Regulation", "Treaty" };
+        }
+    }
+
+    private async Task FiltersChanged()
+    {
+        await OnFiltersChanged.InvokeAsync(Filters);
+    }
+
+    private async Task ResetFilters()
+    {
+        Filters = new FilterOptions();
+        await OnFiltersChanged.InvokeAsync(Filters);
+    }
+}

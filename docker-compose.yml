@@ -1,0 +1,6 @@
+services:
+  asnlawclient:
+    image: ${DOCKER_REGISTRY-}asnlawclient
+    build:
+      context: .
+      dockerfile: ASNLawClient/Dockerfile

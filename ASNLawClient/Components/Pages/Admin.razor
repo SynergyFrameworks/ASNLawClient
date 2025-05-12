@@ -1,0 +1,443 @@
+﻿@page "/admin"
+@using ASNLawClient.Client.Services
+@using ASNLawClient.Client.Models
+@using Microsoft.AspNetCore.Components.Forms
+@inject AuthenticationService AuthService
+@inject NavigationManager NavigationManager
+@inject ApiClient ApiClient
+@inject IJSRuntime JSRuntime
+
+<div class="admin-page">
+    <h1>Document Administration</h1>
+
+    @if (!AuthService.IsAuthenticated())
+    {
+        <div class="alert alert-warning">
+            <p>You need to be logged in to access this page.</p>
+            <button class="btn btn-primary" @onclick="RedirectToLogin">Sign In</button>
+        </div>
+    }
+    else
+    {
+        <div class="tabs">
+            <div class="tab @(activeTab == "upload" ? "active" : "")" @onclick="SetUploadTab">Upload Document</div>
+            <div class="tab @(activeTab == "manage" ? "active" : "")" @onclick="SetManageTab">Manage Documents</div>
+            <div class="tab @(activeTab == "reindex" ? "active" : "")" @onclick="SetReindexTab">Indexing Operations</div>
+        </div>
+
+        <!-- Upload Tab -->
+        <div class="tab-pane @(activeTab == "upload" ? "active" : "")" id="upload" style="@(activeTab != "upload" ? "display: none;" : "")">
+            <div class="admin-section">
+                <h2>Upload New Document</h2>
+                <p>Use this form to upload a new Law document to the system.</p>
+
+                <form>
+                    <div class="form-group">
+                        <label for="title">Title</label>
+                        <input type="text" id="title" class="form-control" @bind="_documentTitle" placeholder="Enter document title">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="jurisdiction">Jurisdiction</label>
+                        <select id="jurisdiction" class="form-select" @bind="_documentJurisdiction">
+                            <option value="">Select jurisdiction</option>
+                            <option value="Federal">Federal</option>
+                            <option value="California">California</option>
+                            <option value="New York">New York</option>
+                            <option value="Texas">Texas</option>
+                            <option value="Florida">Florida</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="parent-document">Parent Document (Optional)</label>
+                        <select id="parent-document" class="form-select" @bind="_parentDocumentId">
+                            <option value="">None (New Document)</option>
+                            @foreach (var doc in _documents ?? new List<Document>())
+                            {
+                                <option value="@doc.Id">@doc.Title (Version @doc.Version)</option>
+                            }
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label>PDF File</label>
+                        <InputFile OnChange="HandleFileSelection" hidden id="file" accept=".pdf" />
+                        <div class="file-upload" @onclick="ClickFileInput">
+                            <div class="file-upload-icon">
+                                <span class="oi oi-cloud-upload"></span>
+                            </div>
+                            <p>Drag and drop a PDF file here, or click to select a file</p>
+                            <p class="text-muted">Maximum file size: 20MB</p>
+                        </div>
+
+                        @if (_selectedFile != null)
+                        {
+                            <div class="selected-file">
+                                <span class="oi oi-file"></span>
+                                <div class="file-info">
+                                    <div class="file-name">@_selectedFile.Name</div>
+                                    <div class="file-size">@GetFormattedFileSize()</div>
+                                </div>
+                                <button type="button" class="action-btn delete" @onclick="RemoveSelectedFile">
+                                    <span class="oi oi-x"></span>
+                                </button>
+                            </div>
+                        }
+                    </div>
+
+                    <div class="form-actions">
+                        <button type="button" class="btn btn-primary" @onclick="UploadDocument" disabled="@(!IsValidUpload())">Upload Document</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Manage Documents Tab -->
+        <div class="tab-pane @(activeTab == "manage" ? "active" : "")" id="manage" style="@(activeTab != "manage" ? "display: none;" : "")">
+            <div class="admin-section">
+                <h2>Manage Existing Documents</h2>
+                <p>View, edit, and manage documents in the system.</p>
+
+                <div class="filters" style="display: flex; gap: 1rem; margin-bottom: 1.5rem;">
+                    <select class="form-select" style="max-width: 200px;" @bind="_filterJurisdiction" @bind:after="ApplyFilters">
+                        <option value="">All Jurisdictions</option>
+                        <option value="Federal">Federal</option>
+                        <option value="California">California</option>
+                        <option value="New York">New York</option>
+                        <option value="Texas">Texas</option>
+                        <option value="Florida">Florida</option>
+                    </select>
+
+                    <input type="text" class="form-control" placeholder="Search documents..."
+                           style="max-width: 300px;" @bind="_searchText" @bind:event="oninput" @onkeydown="HandleSearchKeyDown">
+                </div>
+
+                @if (_documents == null)
+                {
+                    <div class="loading">Loading documents...</div>
+                }
+                else if (!_filteredDocuments.Any())
+                {
+                    <div class="no-documents">No documents found.</div>
+                }
+                else
+                {
+                    <table class="admin-table">
+                        <thead>
+                            <tr>
+                                <th>Title</th>
+                                <th>Jurisdiction</th>
+                                <th>Version</th>
+                                <th>Created</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var doc in _filteredDocuments)
+                            {
+                                <tr>
+                                    <td>@doc.Title</td>
+                                    <td>@doc.Jurisdiction</td>
+                                    <td>@doc.Version</td>
+                                    <td>@doc.CreatedAt.ToString("MMM d, yyyy")</td>
+                                    <td>
+                                        <div class="action-buttons">
+                                            <button class="action-btn edit" @onclick="() => EditDocument(doc.Id)">
+                                                <span class="oi oi-pencil"></span> Edit
+                                            </button>
+                                            <button class="action-btn delete" @onclick="() => DeleteDocument(doc.Id)">
+                                                <span class="oi oi-trash"></span> Delete
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                }
+            </div>
+        </div>
+
+        <!-- Reindex Tab -->
+        <div class="tab-pane @(activeTab == "reindex" ? "active" : "")" id="reindex" style="@(activeTab != "reindex" ? "display: none;" : "")">
+            <div class="admin-section">
+                <h2>Reindex Single Document</h2>
+                <p>Select a document to re-process and reindex it into the search engine.</p>
+
+                <div class="form-group">
+                    <label for="reindex-document">Document</label>
+                    <select id="reindex-document" class="form-select" @bind="_reindexDocumentId">
+                        <option value="">Select Document</option>
+                        @foreach (var doc in _documents ?? new List<Document>())
+                        {
+                            <option value="@doc.Id">@doc.Title (Version @doc.Version)</option>
+                        }
+                    </select>
+                </div>
+
+                <button type="button" class="btn btn-primary"
+                        @onclick="ReindexDocument"
+                        disabled="@string.IsNullOrEmpty(_reindexDocumentId)">
+                    Reindex Document
+                </button>
+            </div>
+
+            <div class="admin-section">
+                <h2>Reindex All Documents</h2>
+                <p>Re-process and reindex all documents in the system. This operation may take a long time.</p>
+
+                <button type="button" class="btn btn-secondary" @onclick="ReindexAllDocuments">
+                    Reindex All Documents
+                </button>
+            </div>
+        </div>
+    }
+</div>
+
+@code {
+    // Tab state
+    private string activeTab = "upload";
+
+    // Document upload state
+    private string _documentTitle = string.Empty;
+    private string _documentJurisdiction = string.Empty;
+    private string _parentDocumentId = string.Empty;
+    private IBrowserFile? _selectedFile;
+
+    // Document list state
+    private List<Document>? _documents;
+    private string _filterJurisdiction = string.Empty;
+    private string _searchText = string.Empty;
+
+    // Reindex state
+    private string _reindexDocumentId = string.Empty;
+
+    private IEnumerable<Document> _filteredDocuments =>
+        _documents?
+            .Where(d => string.IsNullOrEmpty(_filterJurisdiction) || d.Jurisdiction == _filterJurisdiction)
+            .Where(d => string.IsNullOrEmpty(_searchText) ||
+                        d.Title.Contains(_searchText, StringComparison.OrdinalIgnoreCase) ||
+                        d.Jurisdiction.Contains(_searchText, StringComparison.OrdinalIgnoreCase))
+            .ToList() ?? new List<Document>();
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (!AuthService.IsAuthenticated())
+        {
+            // Option: Auto-redirect to login page
+            // NavigationManager.NavigateTo("/login");
+            return;
+        }
+
+        await LoadDocumentsAsync();
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            // Initialize tab handling in JS
+            await JSRuntime.InvokeVoidAsync("adminTabs.initialize");
+        }
+    }
+
+    private void SetUploadTab() => SetActiveTab("upload");
+    private void SetManageTab() => SetActiveTab("manage");
+    private void SetReindexTab() => SetActiveTab("reindex");
+
+
+    private void SetActiveTab(string tab)
+    {
+        activeTab = tab;
+    }
+
+    private async Task LoadDocumentsAsync()
+    {
+        try
+        {
+            _documents = await ApiClient.GetDocumentsAsync();
+            StateHasChanged();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error loading documents: {ex.Message}");
+            _documents = new List<Document>();
+        }
+    }
+
+    private void RedirectToLogin()
+    {
+        NavigationManager.NavigateTo("/login");
+    }
+
+    // File handling methods
+    private void ClickFileInput()
+    {
+        JSRuntime.InvokeVoidAsync("document.getElementById('file').click");
+    }
+
+    private async Task HandleFileSelection(InputFileChangeEventArgs e)
+    {
+        // Limit file size to 20MB
+        const long maxFileSize = 20 * 1024 * 1024;
+
+        if (e.File.Size > maxFileSize)
+        {
+            await JSRuntime.InvokeVoidAsync("alert", "File size exceeds the maximum limit of 20MB.");
+            return;
+        }
+
+        if (!e.File.ContentType.Contains("pdf"))
+        {
+            await JSRuntime.InvokeVoidAsync("alert", "Only PDF files are allowed.");
+            return;
+        }
+
+        _selectedFile = e.File;
+        StateHasChanged();
+    }
+
+    private void RemoveSelectedFile()
+    {
+        _selectedFile = null;
+        StateHasChanged();
+    }
+
+    private string GetFormattedFileSize()
+    {
+        if (_selectedFile == null) return string.Empty;
+
+        double sizeInMB = _selectedFile.Size / (1024.0 * 1024.0);
+        return $"{sizeInMB:F1} MB";
+    }
+
+    private bool IsValidUpload()
+    {
+        return !string.IsNullOrWhiteSpace(_documentTitle) &&
+               !string.IsNullOrWhiteSpace(_documentJurisdiction) &&
+               _selectedFile != null;
+    }
+
+    private async Task UploadDocument()
+    {
+        if (!IsValidUpload()) return;
+
+        try
+        {
+            // TODO: Implement the actual API call to upload the document
+            // For now, we'll simulate a successful upload
+            await Task.Delay(1000); // Simulate upload time
+
+            // Show success alert
+            await JSRuntime.InvokeVoidAsync("alert", "Document uploaded successfully!");
+
+            // Reset the form
+            _documentTitle = string.Empty;
+            _documentJurisdiction = string.Empty;
+            _parentDocumentId = string.Empty;
+            _selectedFile = null;
+
+            // Refresh the document list
+            await LoadDocumentsAsync();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error uploading document: {ex.Message}");
+            await JSRuntime.InvokeVoidAsync("alert", $"Error: {ex.Message}");
+        }
+    }
+
+    private void EditDocument(string documentId)
+    {
+        // TODO: Implement document editing
+        // For now just navigate to the document
+        NavigationManager.NavigateTo($"/document/{documentId}");
+    }
+
+    private async Task DeleteDocument(string documentId)
+    {
+        bool confirmed = await JSRuntime.InvokeAsync<bool>("confirm", "Are you sure you want to delete this document?");
+
+        if (confirmed)
+        {
+            try
+            {
+                // TODO: Implement API call to delete document
+                // For now, just remove from local list
+                if (_documents != null)
+                {
+                    _documents = _documents.Where(d => d.Id != documentId).ToList();
+                    StateHasChanged();
+                }
+
+                await JSRuntime.InvokeVoidAsync("alert", "Document deleted successfully!");
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error deleting document: {ex.Message}");
+                await JSRuntime.InvokeVoidAsync("alert", $"Error: {ex.Message}");
+            }
+        }
+    }
+
+    private void ApplyFilters()
+    {
+        // No need to do anything here, as the filtering is done in the _filteredDocuments property
+        StateHasChanged();
+    }
+
+    private void HandleSearchKeyDown(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter")
+        {
+            ApplyFilters();
+        }
+    }
+
+    private async Task ReindexDocument()
+    {
+        if (string.IsNullOrEmpty(_reindexDocumentId))
+            return;
+
+        try
+        {
+            // TODO: Implement actual reindexing functionality via API
+            await Task.Delay(1000); // Simulate processing time
+
+            await JSRuntime.InvokeVoidAsync("alert", "Document reindexed successfully!");
+
+            // Reset selected document
+            _reindexDocumentId = string.Empty;
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error reindexing document: {ex.Message}");
+            await JSRuntime.InvokeVoidAsync("alert", $"Error: {ex.Message}");
+        }
+    }
+
+    private async Task ReindexAllDocuments()
+    {
+        try
+        {
+            bool confirmed = await JSRuntime.InvokeAsync<bool>(
+                "confirm",
+                "This will reindex all documents in the system. This operation may take a long time. Continue?"
+            );
+
+            if (!confirmed)
+                return;
+
+            // TODO: Implement actual reindexing functionality via API
+            await Task.Delay(2000); // Simulate processing time
+
+            await JSRuntime.InvokeVoidAsync("alert", "All documents reindexed successfully!");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error reindexing all documents: {ex.Message}");
+            await JSRuntime.InvokeVoidAsync("alert", $"Error: {ex.Message}");
+        }
+    }
+}

@@ -1,0 +1,201 @@
+﻿@using ASNLawClient.Client.Models
+@using ASNLawClient.Client.Services
+@inject ApiClient ApiClient
+@inject NavigationManager Navigation
+@inject IJSRuntime JSRuntime
+
+<div class="document-list-container">
+    <h2>Law Documents</h2>
+
+    <div class="filters">
+        <select @bind="SelectedJurisdiction" @bind:after="ApplyFilters">
+            <option value="">All Jurisdictions</option>
+            @foreach (var jurisdiction in Jurisdictions)
+            {
+                <option value="@jurisdiction">@jurisdiction</option>
+            }
+        </select>
+
+        <div class="view-toggle">
+            <button id="gridViewBtn" class="view-toggle-button active">
+                <span class="oi oi-grid-three-up"></span> Grid
+            </button>
+            <button id="listViewBtn" class="view-toggle-button">
+                <span class="oi oi-list"></span> List
+            </button>
+        </div>
+    </div>
+
+    @if (Documents == null)
+    {
+        <div class="loading">
+            <div class="spinner"></div>
+            <span>Loading documents...</span>
+        </div>
+    }
+    else if (!Documents.Any())
+    {
+        <div class="no-documents">No documents found.</div>
+    }
+    else
+    {
+        <!-- Grid View -->
+        <div id="gridView" class="documents-grid">
+            @foreach (var document in FilteredDocuments)
+            {
+                <div class="document-card" @onclick="() => ViewDocument(document.Id)">
+                    <div class="document-card-header">
+                        <h3>@document.Title</h3>
+                        <span class="jurisdiction">@document.Jurisdiction</span>
+                    </div>
+                    <div class="document-card-content">
+                        <div class="metadata">
+                            <div class="version">Version @document.Version</div>
+                            <div class="date">@document.CreatedAt.ToString("MMM d, yyyy")</div>
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
+
+        <!-- List View -->
+        <div id="listView" class="documents-list" style="display: none;">
+            @foreach (var document in FilteredDocuments)
+            {
+                <div class="document-list-item" @onclick="() => ViewDocument(document.Id)">
+                    <div class="document-icon">
+                        <span class="oi oi-file"></span>
+                    </div>
+                    <div class="document-info">
+                        <div class="document-title">@document.Title</div>
+                        <div class="document-meta">
+                            <span class="jurisdiction">@document.Jurisdiction</span>
+                            <span class="version">Version @document.Version</span>
+                            <span class="date">@document.CreatedAt.ToString("MMM d, yyyy")</span>
+                        </div>
+                    </div>
+                    <div class="document-actions">
+                        <button class="action-button primary">View</button>
+                    </div>
+                </div>
+            }
+        </div>
+
+        @if (TotalPages > 1)
+        {
+            <div class="pagination">
+                <button @onclick="() => ChangePage(CurrentPage - 1)"
+                        disabled="@(CurrentPage <= 1)" class="page-button">
+                    Previous
+                </button>
+
+                @for (int i = 1; i <= TotalPages; i++)
+                {
+                    var pageNumber = i;
+                    <button @onclick="() => ChangePage(pageNumber)"
+                            class="page-button @(pageNumber == CurrentPage ? "active" : "")">
+                        @pageNumber
+                    </button>
+                }
+
+                <button @onclick="() => ChangePage(CurrentPage + 1)"
+                        disabled="@(CurrentPage >= TotalPages)" class="page-button">
+                    Next
+                </button>
+            </div>
+        }
+    }
+</div>
+
+@code {
+    [Parameter]
+    public List<Document>? Documents { get; set; }
+
+    private List<string> Jurisdictions { get; set; } = new List<string>();
+    private string SelectedJurisdiction { get; set; } = string.Empty;
+    private int CurrentPage { get; set; } = 1;
+    private int PageSize { get; set; } = 12;
+
+    private IEnumerable<Document> FilteredDocuments =>
+        Documents?
+            .Where(d => string.IsNullOrEmpty(SelectedJurisdiction) || d.Jurisdiction == SelectedJurisdiction)
+            .Skip((CurrentPage - 1) * PageSize)
+            .Take(PageSize)
+        ?? Array.Empty<Document>();
+
+    private int TotalPages => Documents != null
+        ? (int)Math.Ceiling(Documents.Count(d =>
+            string.IsNullOrEmpty(SelectedJurisdiction) || d.Jurisdiction == SelectedJurisdiction) / (double)PageSize)
+        : 0;
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (Documents == null)
+        {
+            await LoadDocumentsAsync();
+        }
+        else
+        {
+            Jurisdictions = Documents.Select(d => d.Jurisdiction).Distinct().OrderBy(j => j).ToList();
+        }
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            // Initialize view toggle JS
+            await JSRuntime.InvokeVoidAsync("documentViewToggle.initialize");
+        }
+    }
+
+    private async Task LoadDocumentsAsync()
+    {
+        try
+        {
+            Documents = await ApiClient.GetDocumentsAsync();
+
+            if (Documents != null && Documents.Any())
+            {
+                Jurisdictions = Documents
+                    .Select(d => d.Jurisdiction)
+                    .Where(j => !string.IsNullOrEmpty(j))
+                    .Distinct()
+                    .OrderBy(j => j)
+                    .ToList();
+            }
+            else
+            {
+                Documents = new List<Document>();
+            }
+
+            StateHasChanged();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error loading documents: {ex.Message}");
+            Documents = new List<Document>();
+        }
+    }
+
+    private void ApplyFilters()
+    {
+        // Reset to first page when filters change
+        CurrentPage = 1;
+        StateHasChanged();
+    }
+
+    private void ChangePage(int page)
+    {
+        if (page < 1 || page > TotalPages || page == CurrentPage)
+            return;
+
+        CurrentPage = page;
+        StateHasChanged();
+    }
+
+    private void ViewDocument(string documentId)
+    {
+        Navigation.NavigateTo($"/document/{documentId}");
+    }
+}
